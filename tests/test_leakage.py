@@ -64,3 +64,28 @@ def test_no_missing_values(feats):
 def test_dates_are_sorted_and_unique(feats):
     assert feats.dteday.is_monotonic_increasing
     assert feats.dteday.is_unique
+
+
+def test_temp_hum_interaction_exists():
+    """Test that temp * hum interaction feature exists and has correct values.
+
+    At prediction time for date d, we know temp[d] and hum[d]. Their product
+    is also known, so it's a valid (though possibly useless) feature.
+
+    This test MUST fail initially because the column doesn't exist yet.
+    """
+    feats = build_features(load_raw())
+    # Use 2011-02-04 which exists in both raw data and gap-free calendar
+    # Values from raw data: temp=1.9313, hum=58.5217
+    expected = 1.9313 * 58.5217  # ~112.932467
+    target_date = pd.Timestamp("2011-02-04")
+
+    assert "temp_hum" in feats.columns, (
+        f"temp_hum column not found in feature set. "
+        f"Available columns: {list(feats.columns)}"
+    )
+    actual = feats.loc[feats.dteday == target_date, "temp_hum"].values[0]
+    assert abs(actual - expected) < 0.01, (
+        f"temp_hum mismatch on {target_date.date()}: "
+        f"expected {expected:.4f}, got {actual:.4f}"
+    )
